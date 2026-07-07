@@ -15,3 +15,4 @@ def calculate_annualized_realized_volitality(df : pd.DataFrame , col : str = 'SP
     
     return daily_vol * np.sqrt(252)
 
+

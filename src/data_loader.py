@@ -1,4 +1,5 @@
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import numpy as np
 
 def load_data(file_path: str) -> pd.DataFrame:
