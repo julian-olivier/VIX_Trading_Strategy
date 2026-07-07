@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def load_data(file_path: str) -> pd.DataFrame:
     """
@@ -46,7 +47,7 @@ def load_data(file_path: str) -> pd.DataFrame:
     # We coerce errors to NaN to handle any placeholder text values (like 'SVXY Close')
     numeric_cols = df.columns.difference(['ID', 'Date'])
     for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        df[col] = pd.to_numeric(df[col], errors='coerce').replace(0, np.nan)
 
     # 6. Ensure chronological ordering by Date
     if 'Date' in df.columns:
