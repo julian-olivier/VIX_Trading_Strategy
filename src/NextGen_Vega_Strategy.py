@@ -20,4 +20,18 @@ def get_signals(df : pd.DataFrame ):
 
     return df
 
+def calculate_svxy_daily_returns(df : pd.DataFrame ):
+    df['SVXY Returns'] = df['SVXY Close'].pct_change()
+    return df
 
+def calculate_vxx_daily_returns(df : pd.DataFrame ):
+    df['VXX Returns'] = df['VXX Close'].pct_change()
+    return df
+
+def calculate_return_ratios(df : pd.DataFrame ):
+    df['Return Ratio'] = df['SVXY Returns'] / df['VXX Returns'] * -1
+    return df
+
+def calculate_strategy_returns(df : pd.DataFrame):
+    df['Strategy Returns'] = np.where(df['Signal'].shift(1) == 'Long', df['VXX Returns'], df['SVXY Returns'])
+    return df
