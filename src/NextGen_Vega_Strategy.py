@@ -15,4 +15,9 @@ def calculate_annualized_realized_volitality(df : pd.DataFrame , col : str = 'SP
     
     return daily_vol * np.sqrt(252)
 
+def get_signals(df : pd.DataFrame ):
+    df['Signal'] = np.where(calculate_annualized_realized_volitality(df) * 100> df['VIX'].shift(21) , 'Long', 'Short')
+
+    return df
+
 

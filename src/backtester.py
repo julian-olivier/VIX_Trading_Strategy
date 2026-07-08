@@ -15,8 +15,6 @@ class VIXBacktester:
         df['Cash'] = self.portfolio * (1 - self.exposure)
         df['SVXY_Returns'] = df['SVXY Close'].pct_change()
         df['VXX_Returns'] = df['VXX Close'].pct_change()
-        df['Signal'] = np.where(nextgen.calculate_annualized_realized_volitality(df) * 100> df['VIX'].shift(21) , 'Long', 'Short')
-
 
     def calculate_transaction_costs(self, df):
         #current signal & previous signal  
