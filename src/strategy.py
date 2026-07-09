@@ -137,33 +137,6 @@ def calculate_return_ratios(
     """
     return (svxy_returns / vxx_returns) * -1
 
-def calculate_strategy_returns(
-    signals: pd.Series,
-    vxx_returns: pd.Series,
-    svxy_returns: pd.Series
-) -> pd.Series:
-    """
-    Calculates strategy returns based on the lagged (shift 1) signals.
-
-    Parameters:
-    -----------
-    signals : pd.Series
-        Trading signals ('Long' or 'Short').
-    vxx_returns : pd.Series
-        Daily returns of VXX.
-    svxy_returns : pd.Series
-        Daily returns of SVXY.
-
-    Returns:
-    --------
-    pd.Series
-        Strategy returns for each period.
-    """
-    return pd.Series(
-        np.where(signals.shift(1) == 'Long', vxx_returns, svxy_returns),
-        index=signals.index
-    )
-
 def calculate_leverage(
     signals: pd.Series,
     svxy_returns: pd.Series,
@@ -198,7 +171,7 @@ def calculate_leverage(
     Tuple[pd.Series, pd.Series, pd.Series, pd.Series]
         (vol_ratio, signal_strength, base_exposure, target_leverage)
     """
-    # 1. Calculate rolling standard deviations of returns and the Vol Ratio
+    # 1. Calculate rolling standard deviations of returns and the Vol Ratio to ensure the ratio is always positive
     svxy_vol = svxy_returns.rolling(window).std()
     vxx_vol = vxx_returns.rolling(window).std()
     
@@ -275,7 +248,6 @@ def run_strategy_pipeline(
     real_vol = calculate_realized_volatility(result[spx_col], window=vol_window)
     result['Annualized Realized Volatility'] = calculate_annualized_volatility(real_vol)
     result['Signal'] = generate_signals(result['Annualized Realized Volatility'], result[vix_col], shift=vol_window)
-    result['Strategy Returns'] = calculate_strategy_returns(result['Signal'], result['VXX Returns'], result['SVXY Returns'])
     
     # 3. Volatility Difference (signed)
     result['Difference between Actual and Predicted vol'] = calculate_volatility_difference(
