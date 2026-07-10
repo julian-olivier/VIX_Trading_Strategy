@@ -38,26 +38,7 @@ class VIXBacktester:
         self.trading_cost = trading_cost
         self.exposure = exposure
 
-    def calculate_transaction_costs(self, df: pd.DataFrame) -> None:
-        """
-        Estimates simplified transaction costs for backward compatibility.
-
-        Parameters:
-        -----------
-        df : pd.DataFrame
-            DataFrame containing signals (mutated in-place for this helper method).
-        """
-        position = df['Signal'].shift(1)
-        prev_position = df['Signal'].shift(2)
-
-        df['Transaction Cost'] = 0.0
-        initial_entry = position.notna() & prev_position.isna()
-        df.loc[initial_entry, 'Transaction Cost'] = self.trading_cost
-        
-        switch = position.notna() & prev_position.notna() & (position != prev_position)
-        df.loc[switch, 'Transaction Cost'] = 2 * self.trading_cost
-
-    def _calculate_step_portfolio_value(
+    def calculate_rebalance_step(
         self,
         V_before: float,
         P_current: float,
@@ -94,6 +75,7 @@ class VIXBacktester:
             cost_total = cost_liq + self.trading_cost * L_target * V_t
         else:
             # Same asset (addition or reduction of the position)
+            
             if L_target * V_before >= P_current:
                 # Addition: buying more of the same asset
                 V_t = (V_before - self.trading_cost * P_current) / (1.0 - self.trading_cost * L_target)
@@ -135,8 +117,8 @@ class VIXBacktester:
         portfolio_values = []
         transaction_costs = []
         leverage_held = []
-        cash_held = []
-        vega_returns = []
+        cash_balance = []
+        position_values = []
         net_returns = []
 
         V_t = self.portfolio
@@ -171,7 +153,7 @@ class VIXBacktester:
             pos_new = sig if L_target > 0 else None
 
             # 3. Calculate rebalanced portfolio value and costs
-            V_t, cost_total = self._calculate_step_portfolio_value(
+            V_t, cost_total = self.calculate_rebalance_step(
                 V_before, P_current, L_target, pos_new, pos_prev
             )
 
@@ -179,8 +161,10 @@ class VIXBacktester:
             portfolio_values.append(V_t)
             transaction_costs.append(cost_total)
             leverage_held.append(L_target)
-            cash_held.append(max(0.0, 1.0 - L_target) * V_t)
-            vega_returns.append(L_target * V_t)
+            
+            # Cash balance is negative if leverage is greater than 1.0 (representing margin debt)
+            cash_balance.append((1.0 - L_target) * V_t)
+            position_values.append(L_target * V_t)
 
             # Daily net return of portfolio
             daily_net_return = (V_t - V_before) / V_before if V_before > 0 else 0.0
@@ -194,8 +178,8 @@ class VIXBacktester:
         df['Portfolio Value'] = portfolio_values
         df['Transaction Cost'] = transaction_costs
         df['Leverage Held'] = leverage_held
-        df['Cash'] = cash_held
-        df['Vega Returns'] = vega_returns
+        df['Cash Balance'] = cash_balance
+        df['Position Value'] = position_values
         df['Net Returns'] = net_returns
 
         # Calculate Buy and Hold SPX benchmark

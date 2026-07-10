@@ -250,7 +250,7 @@ def run_strategy_pipeline(
     result['Signal'] = generate_signals(result['Annualized Realized Volatility'], result[vix_col], shift=vol_window)
     
     # 3. Volatility Difference (signed)
-    result['Difference between Actual and Predicted vol'] = calculate_volatility_difference(
+    result['VRP ( Realized - VIX )'] = calculate_volatility_difference(
         result['Annualized Realized Volatility'], result[vix_col], shift=vol_window
     )
     
@@ -259,7 +259,7 @@ def run_strategy_pipeline(
         signals=result['Signal'],
         svxy_returns=result['SVXY Returns'],
         vxx_returns=result['VXX Returns'],
-        vol_difference=result['Difference between Actual and Predicted vol'],
+        vol_difference=result['VRP ( Realized - VIX )'],
         base_exposure=base_exposure,
         window=leverage_window,
         max_leverage=max_leverage
@@ -270,7 +270,6 @@ def run_strategy_pipeline(
     result['Base Exposure'] = base_exp
     result['Target Leverage'] = target_leverage
     
-    # Convert difference to absolute value for backward compatibility (matches original mutation)
-    result['Difference between Actual and Predicted vol'] = result['Difference between Actual and Predicted vol'].abs()
+    # We keep the VRP difference signed for clearer plotting and output interpretation
     
     return result
