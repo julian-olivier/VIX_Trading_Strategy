@@ -17,7 +17,7 @@ class VIXBacktester:
         self,
         df: pd.DataFrame,
         initial_portfolio: float = 1000000.0,
-        exposure: float = 0.5,
+        exposure: float = 0.25,
         trading_cost: float = 0.002,
         rebalance_threshold: float = 0.05,
         signal_activation_threshold: float = 2.0
@@ -31,7 +31,7 @@ class VIXBacktester:
             DataFrame containing prices, returns, and signals.
         initial_portfolio : float, default 1,000,000.0
             Initial portfolio value in USD.
-        exposure : float, default 0.5
+        exposure : float, default 0.25
             Base asset exposure to use if Target Leverage is not computed.
         trading_cost : float, default 0.002
             Transaction cost rate per leg (e.g. 0.002 = 20 bps).
@@ -44,7 +44,6 @@ class VIXBacktester:
 
     def calculate_rebalance_step(
         self,
-        trasaction_costs_incurred: int,
         V_before: float,
         P_current: float,
         L_target: float,
@@ -90,10 +89,7 @@ class VIXBacktester:
                 V_t = (V_before - self.trading_cost * P_current) / (1.0 - self.trading_cost * L_target)
             cost_total = self.trading_cost * abs(L_target * V_t - P_current)
             
-        if cost_total > 0.0:
-            trasaction_costs_incurred += 1
-            
-        return V_t, cost_total, trasaction_costs_incurred
+        return V_t, cost_total
 
     def run_simulation(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -130,7 +126,7 @@ class VIXBacktester:
         position_values = []
         net_returns = []
 
-        trasaction_costs_incurred = 0
+
         V_t = self.portfolio
         L_prev = 0.0
         pos_prev = None
@@ -180,13 +176,13 @@ class VIXBacktester:
                     cost_total = 0.0
                     L_actual = L_eff
                 else:
-                    V_t, cost_total, trasaction_costs_incurred = self.calculate_rebalance_step(
-                        trasaction_costs_incurred, V_before, P_current, L_target, pos_new, pos_prev
+                    V_t, cost_total = self.calculate_rebalance_step(
+                        V_before, P_current, L_target, pos_new, pos_prev
                     )
                     L_actual = L_target
             else:
-                V_t, cost_total, trasaction_costs_incurred = self.calculate_rebalance_step(
-                    trasaction_costs_incurred, V_before, P_current, L_target, pos_new, pos_prev
+                V_t, cost_total = self.calculate_rebalance_step(
+                    V_before, P_current, L_target, pos_new, pos_prev
                 )
                 L_actual = L_target if pos_new is not None else 0.0
 

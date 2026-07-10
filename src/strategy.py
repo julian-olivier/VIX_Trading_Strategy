@@ -142,7 +142,7 @@ def calculate_leverage(
     svxy_returns: pd.Series,
     vxx_returns: pd.Series,
     vol_difference: pd.Series,
-    base_exposure: float = 0.5,
+    base_exposure: float = 0.25,
     window: int = 21,
     max_leverage: float = 3.0
 ) -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
@@ -159,7 +159,7 @@ def calculate_leverage(
         Daily returns of VXX.
     vol_difference : pd.Series
         Difference between realized volatility and VIX.
-    base_exposure : float, default 0.5
+    base_exposure : float, default 0.25
         Default base exposure level.
     window : int, default 21
         Rolling window size for calculating returns volatility.
@@ -202,7 +202,7 @@ def run_strategy_pipeline(
     vix_col: str = 'VIX',
     svxy_col: str = 'SVXY Close',
     vxx_col: str = 'VXX Close',
-    base_exposure: float = 0.5,
+    base_exposure: float = 0.25,
     vol_window: int = 21,
     leverage_window: int = 21,
     max_leverage: float = 3.0
@@ -223,7 +223,7 @@ def run_strategy_pipeline(
         Name of SVXY close column.
     vxx_col : str, default 'VXX Close'
         Name of VXX close column.
-    base_exposure : float, default 0.5
+    base_exposure : float, default 0.25
         Base target exposure.
     vol_window : int, default 21
         Lookback window for realized volatility calculation.
