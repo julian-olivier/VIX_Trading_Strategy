@@ -1,6 +1,11 @@
-import pandas as pd
-# pyrefly: ignore [missing-import]
+"""
+Data loading and preprocessing utilities for the VIX Trading Strategy.
+Handles file ingestion, header detection, and type conversion.
+"""
+
+import os
 import numpy as np
+import pandas as pd
 
 def load_data(file_path: str) -> pd.DataFrame:
     """
@@ -17,10 +22,24 @@ def load_data(file_path: str) -> pd.DataFrame:
     --------
     pd.DataFrame
         A cleaned, sorted DataFrame.
+
+    Raises:
+    -------
+    FileNotFoundError
+        If the Excel file does not exist at the specified path.
+    ValueError
+        If the file has an incorrect structure or cannot be read.
     """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Input file not found at: {file_path}")
+
     # 1. Detect where the header row actually starts by searching for 'ID'
     # in the first column of the first few rows.
-    df_head = pd.read_excel(file_path, header=None, nrows=10)
+    try:
+        df_head = pd.read_excel(file_path, header=None, nrows=10)
+    except Exception as e:
+        raise ValueError(f"Failed to read file {file_path}: {e}")
+
     header_row = 0
     for idx, row in df_head.iterrows():
         # Check if the first column cell contains 'id' (case-insensitive)
@@ -42,6 +61,8 @@ def load_data(file_path: str) -> pd.DataFrame:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
         # Drop rows where Date is NaT (e.g. empty rows or footer notes)
         df = df.dropna(subset=['Date'])
+    else:
+        raise ValueError("Could not identify 'Date' column in the dataset.")
 
     # 5. Clean and convert the numeric columns
     # We want columns other than 'ID' and 'Date' to be numeric (float64)
@@ -51,7 +72,6 @@ def load_data(file_path: str) -> pd.DataFrame:
         df[col] = pd.to_numeric(df[col], errors='coerce').replace(0, np.nan)
 
     # 6. Ensure chronological ordering by Date
-    if 'Date' in df.columns:
-        df = df.sort_values(by='Date').reset_index(drop=True)
+    df = df.sort_values(by='Date').reset_index(drop=True)
 
     return df
