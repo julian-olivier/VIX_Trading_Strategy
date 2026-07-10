@@ -18,7 +18,9 @@ class VIXBacktester:
         df: pd.DataFrame,
         initial_portfolio: float = 1000000.0,
         exposure: float = 0.5,
-        trading_cost: float = 0.002
+        trading_cost: float = 0.002,
+        rebalance_threshold: float = 0.05,
+        signal_activation_threshold: float = 2.0
     ):
         """
         Initializes the backtester.
@@ -37,10 +39,12 @@ class VIXBacktester:
         self.portfolio = initial_portfolio
         self.trading_cost = trading_cost
         self.exposure = exposure
+        self.rebalance_threshold = rebalance_threshold
+        self.signal_activation_threshold = signal_activation_threshold
 
     def calculate_rebalance_step(
         self,
-        count: int,
+        trasaction_costs_incurred: int,
         V_before: float,
         P_current: float,
         L_target: float,
@@ -75,21 +79,21 @@ class VIXBacktester:
             cost_liq = self.trading_cost * P_current
             V_t = (V_before - cost_liq) / (1.0 + self.trading_cost * L_target)
             cost_total = cost_liq + self.trading_cost * L_target * V_t
-            count += 1
         else:
             # Same asset (addition or reduction of the position)
             
             if L_target * V_before >= P_current:
                 # Addition: buying more of the same asset
                 V_t = (V_before + self.trading_cost * P_current) / (1.0 + self.trading_cost * L_target)
-                count += 1
             else:
                 # Reduction: selling some of the same asset
                 V_t = (V_before - self.trading_cost * P_current) / (1.0 - self.trading_cost * L_target)
-                count += 1
             cost_total = self.trading_cost * abs(L_target * V_t - P_current)
             
-        return V_t, cost_total, count
+        if cost_total > 0.0:
+            trasaction_costs_incurred += 1
+            
+        return V_t, cost_total, trasaction_costs_incurred
 
     def run_simulation(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -126,7 +130,7 @@ class VIXBacktester:
         position_values = []
         net_returns = []
 
-        count = 0
+        trasaction_costs_incurred = 0
         V_t = self.portfolio
         L_prev = 0.0
         pos_prev = None
@@ -137,6 +141,7 @@ class VIXBacktester:
             ret_svxy = row['SVXY Returns']
             sig = row['Signal']
             L_target = row['Target Leverage']
+            sig_strength = row.get('Signal Strength', 1.0)
 
             # Coerce NaNs to zero returns (e.g. first row)
             ret_vxx = 0.0 if pd.isna(ret_vxx) else ret_vxx
@@ -156,30 +161,51 @@ class VIXBacktester:
             # 2. Value of the position before rebalancing
             P_current = L_prev * V_t * (1.0 + R_t)
 
+            # Apply signal activation threshold
+            if self.signal_activation_threshold > 0.0 and sig_strength < self.signal_activation_threshold:
+                if sig == pos_prev:
+                    L_target = L_prev
+                else:
+                    L_target = row.get('Base Exposure', self.exposure)
+
             # Determine target position for today
             pos_new = sig if L_target > 0 else None
 
-            # 3. Calculate rebalanced portfolio value and costs
-            V_t, cost_total, count = self.calculate_rebalance_step(
-                count, V_before, P_current, L_target, pos_new, pos_prev
-            )
+            # 3. Calculate rebalanced portfolio value and costs (applying rebalancing threshold if same asset)
+            if pos_new == pos_prev and self.rebalance_threshold > 0.0:
+                L_eff = P_current / V_before if V_before > 0 else 0.0
+                if abs(L_target - L_eff) < self.rebalance_threshold:
+                    # Skip rebalancing today
+                    V_t = V_before
+                    cost_total = 0.0
+                    L_actual = L_eff
+                else:
+                    V_t, cost_total, trasaction_costs_incurred = self.calculate_rebalance_step(
+                        trasaction_costs_incurred, V_before, P_current, L_target, pos_new, pos_prev
+                    )
+                    L_actual = L_target
+            else:
+                V_t, cost_total, trasaction_costs_incurred = self.calculate_rebalance_step(
+                    trasaction_costs_incurred, V_before, P_current, L_target, pos_new, pos_prev
+                )
+                L_actual = L_target if pos_new is not None else 0.0
 
             # Append stats
             portfolio_values.append(V_t)
             transaction_costs.append(cost_total)
-            leverage_held.append(L_target)
+            leverage_held.append(L_actual)
             
             # Cash balance is negative if leverage is greater than 1.0 (representing margin debt)
-            cash_balance.append((1.0 - L_target) * V_t)
-            position_values.append(L_target * V_t)
+            cash_balance.append((1.0 - L_actual) * V_t)
+            position_values.append(L_actual * V_t)
 
             # Daily net return of portfolio
             daily_net_return = (V_t - V_prev) / V_prev if V_prev > 0 else 0.0
             net_returns.append(daily_net_return)
 
             # Update state variables
-            L_prev = L_target
-            pos_prev = pos_new if L_target > 0 else None
+            L_prev = L_actual
+            pos_prev = pos_new if L_actual > 0 else None
 
         # Add simulation results to output DataFrame
         df['Portfolio Value'] = portfolio_values
@@ -198,6 +224,4 @@ class VIXBacktester:
             else:
                 df['SPX Buy Hold'] = self.portfolio
 
-
-        print (count)
         return df
