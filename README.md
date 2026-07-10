@@ -56,7 +56,7 @@ We simulated the updated volatility strategy across several base exposures. The 
     *   **Transaction Cost Reduction:** By skipping rebalances when the leverage shift is $< 0.05$ (5%), the rebalance frequency was cut from daily (100%) to only **8.60% of trading days** (for Base = 0.25) and **15.99%** (for Base = 0.50). This saved a massive amount of transaction costs.
     *   **Performance Uplift:** For Base = 0.25, the total return was significantly protected compared to unmanaged daily rebalancing models.
 3.  **Hedging Efficacy & Allocation:**
-    We recommend keeping the default base exposure at **0.25** paired with the active threshold settings. At this level, the strategy functions as a capital-efficient tail hedge: it generates positive long-term returns over the backtest period while maintaining a high correlation to market volatility spikes. This exposure level provides the fund with robust liquidity and gains during market panics (e.g., Q1 2020) without suffering from the devastating volatility decay that wipes out higher-gearing portfolios during prolonged equity bull markets.
+    We recommend keeping the default base exposure at **0.25** paired with the active threshold settings. At this level, the strategy functions as a capital-efficient tail hedge: it generates positive long-term returns over the backtest period while maintaining a high correlation to market volatility spikes. This exposure level provides the fund with robust liquidity and gains during market panics (e.g., Q1 2020) without suffering from the devastating volatility decay that wipes out higher-exposed portfolios during prolonged equity bull markets.
 
 ---
 
@@ -74,16 +74,4 @@ We simulated the updated volatility strategy across several base exposures. The 
 *   **Paired t-Test (vs S&P 500):** We conducted a two-tailed paired-sample t-test on the daily returns of the strategy ($R_{strat, t}$) against the daily returns of the S&P 500 Buy & Hold ($R_{spx, t}$) to evaluate if the strategy's returns are statistically different from the benchmark.
 *   **One-Sample t-Test (vs 0):** We conducted a one-sample t-test on the daily returns of the strategy to verify if the average daily return is statistically different from zero.
 
-### Statistical Results (Base = 0.25 Baseline)
-*   **Strategy (Base=0.25) vs S&P 500 Buy & Hold:**
-    *   **t-statistic:** $0.3090$
-    *   **p-value:** $0.7573$
-    *   *Interpretation:* There is **no statistically significant difference** between the daily returns of the strategy and the S&P 500. This is expected, as the strategy is designed as an uncorrelated tail hedge rather than a stock market clone.
-*   **Strategy (Base=0.25) vs 0:**
-    *   **t-statistic:** $1.0883$
-    *   **p-value:** $0.2766$
-    *   *Interpretation:* The strategy's average daily return is not statistically different from zero over the long-term, showing that the strategy is return-neutral in quiet markets while maintaining its core hedging capability for periods of high stress.
-*   **S&P 500 Buy & Hold vs 0:**
-    *   **t-statistic:** $2.1206$
-    *   **p-value:** **$0.0341$**
-    *   *Interpretation:* The S&P 500 Buy & Hold returns are **statistically significant** ($p < 0.05$), confirming a robust upward drift in the benchmark.
+
