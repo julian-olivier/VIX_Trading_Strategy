@@ -108,8 +108,6 @@ Although this simulation yields key insights, several structural simplifications
 
 *   **No Execution Slippage:** The backtest assumes all rebalancing trades are executed exactly at the daily closing price. In high-volatility regimes (such as the March 2020 crash), VIX exchange-traded products experience extreme bid-ask spread widening and fast price movement, meaning execution slippage would erode actual returns.
 *   **Omission of Funding & Borrow Costs:** Running leveraged positions or shorting volatility (SVXY/VXX) in practice requires financing and margin debt. Under volatile conditions, the borrow cost for shorting VXX or margin maintenance costs for SVXY can spike dramatically, which is not modeled by the flat 20 bps transaction fee.
-*   **Option Payoff & Premium Decays:** While direct option hedging (as discussed in Section 3) offers asymmetric payoffs, they are not incorporated in this model. Option premium decay (theta) is path-dependent and would represent a significant structural drag not captured here.
-*   **ETF Expense Ratios:** While close-to-close ETP prices theoretically reflect management expense ratios (VXX has an expense ratio of 0.89% and SVXY has 0.95%), the model does not account for the tracking errors that occur during periods of extreme market dislocation (e.g., the 2022 Barclays creation suspension for VXX).
 
 ### Future Backtest Extension (2008 Crash)
 With more time, I would extend the backtest back to 2008 to analyze how the strategy handles the Global Financial Crisis. The GFC represents a prolonged high-volatility regime and the ultimate stress test for tail-hedging portfolios, which would verify if the strategy's signal thresholds hold up under multi-month equity drawdowns.
