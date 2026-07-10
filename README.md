@@ -1,15 +1,134 @@
-# VIX_Trading_Strategy
+# VIX Trading Strategy Backtesting Report & Analysis
 
-ETF structual changes:
- - in nov 2017 the price of the VXX ETF skyrockets because of the nature of the ETF. The ETF constantly bleeds money ebcasue of the premiums its has to pay on the VIX futures becasue of the contago shape of futures price. 
+This repository contains a quantitative research and backtesting framework for a **VIX/Vega Trading Strategy**. The strategy dynamically switches between long volatility exposure (via **VXX**) and short volatility exposure (via **SVXY**) based on the Volatility Risk Premium (VRP), defined as the difference between rolling annualized realized volatility of the S&P 500 and the lagged VIX index.
 
-Gearing Reccomendation with suppuorting analysis:
+---
 
-Alternative instruments:
+## 1. ETF Structural Changes & Data Quality Adjustments
 
-Results with methodology breakdown:
+To ensure a robust backtest, we identified and adjusted for several critical structural changes in the underlying ETFs and anomalies in the data:
 
-Extra stuff - including key decisions, ambiguity found and assumptions made:
+### ETF Structural Dynamics
+*   **VXX Roll Yield Decay (Contango Bleed):** 
+    The VXX ETF holds a daily rolling long position in first- and second-month VIX futures. Because the VIX futures term structure is in contango ~85% of the time, VXX is forced to constantly sell cheaper near-month contracts and buy more expensive next-month contracts. This negative roll yield leads to a constant long-term decay (often losing 99%+ of its value over multi-year horizons), which triggers frequent reverse stock splits. This explains the extremely high back-adjusted price of VXX in the pre-2018 historical data (e.g., exceeding $1,900/share in late 2017).
+*   **SVXY Leverage Halving (February 2018):** 
+    During the "Volpocalypse" event of February 5, 2018, the VIX index surged by a record 115% in a single day. The sudden spike wiped out short volatility products (including the liquidation of XIV). To mitigate the risk of a total wipeout, ProShares structurally altered SVXY's target exposure on **February 27, 2018**, reducing its leverage from **-1.0x to -0.5x** of the daily VIX futures index.
 
-- Sliced the dataframe as to discard the fault data from 2026-03-31 onwards because all the VIX values from that date onwards are 25.25
-- sliced original df again becasue the data pre 2018 for the VXX is noisy and not reliable enough to use for this strategy as seen in the 48% negative values for the return ratio during this time.
+### Strategy Adjustments & Risk Parity
+*   **Dynamic Exposure Scaling (Vol Ratio):** 
+    The strategy incorporates a rolling 21-day volatility ratio of the two ETFs ($VolRatio = \frac{\sigma(SVXY)}{\sigma(VXX)}$) to dynamically adjust position sizes and achieve risk parity:
+    *   **Pre-Feb 2018:** SVXY had -1x leverage, resulting in a Vol Ratio of $\approx 1.0$. The strategy held symmetric exposures ($\approx 0.50$ base exposure for both legs).
+    *   **Post-Feb 2018:** SVXY leverage was reduced to -0.5x, causing the Vol Ratio to drop to $\approx 0.50$. The strategy dynamically divides SVXY's exposure by this Vol Ratio:
+        $$\text{SVXY Exposure} = \frac{\text{Base Exposure}}{\text{Vol Ratio}} = \frac{0.50}{0.50} = 1.00$$
+        This doubling of the SVXY position size compensates for the leverage halving, keeping the net volatility risk exposure to the VIX futures constant across the pre- and post-2018 periods.
+
+### Data Cleaning Decisions
+*   **Pre-2018 Data Exclusion:** 
+    We discarded all data prior to **2018-01-01**. Analysis of the pre-2018 period revealed that **46.52%** of trading days had a negative return ratio between SVXY and VXX. Since one is long VIX and the other is short, their daily returns must be inversely correlated (positive return ratio under our formula). A 46.52% negative ratio indicates severe data corruption, misalignment, or asynchronous pricing in the pre-2018 data. Post-2018, this discrepancy drops to only **2.61%**, validating the cleanliness of the post-2018 data.
+*   **Post-March 2026 Cutoff:** 
+    The historical dataset was truncated at **2026-03-31**. From this date onwards, the VIX index values in the raw dataset flatline at exactly **25.25** every single day, which represents a corrupted data feed.
+
+---
+
+## 2. Gearing Recommendation & Risk-Management Analysis
+
+We simulated the strategy across several base exposures (gearing levels) and compared them to a dynamic risk-managed model incorporating the user's preferred **1.5% Daily Volatility Target** and a **3.0% Trailing Stop**. 
+
+### Performance Comparison Table (2018-01-01 to 2026-03-31)
+
+| Strategy / Gearing Option | Total Return (%) | CAGR (%) | Ann. Volatility (%) | Sharpe Ratio | Sortino Ratio | Max Drawdown (%) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **S&P 500 Buy & Hold** | **179.33%** | **12.78%** | **19.10%** | **0.7257** | **0.8713** | **-33.79%** |
+| **Original Backtester (Base=0.5, Bugs)** | 47.47% | 4.65% | 78.19% | 0.3925 | 0.5294 | -89.30% |
+| **Corrected Backtester (Base=0.25)** | -15.83% | -2.00% | 50.15% | 0.1742 | 0.2507 | -81.48% |
+| **Corrected Backtester (Base=0.50)** | -65.94% | -11.85% | 77.97% | 0.1734 | 0.2433 | -95.28% |
+| **Corrected Backtester (Base=0.75)** | -84.55% | -19.64% | 93.25% | 0.1768 | 0.2426 | -97.79% |
+| **Corrected Backtester (Base=1.00)** | -93.86% | -27.87% | 104.49% | 0.1635 | 0.2165 | -98.80% |
+| **Corrected (VolTarget=1.5%, Stop=3%)** | -63.09% | -11.02% | **25.49%** | **-0.3276** | **-0.3470** | **-64.39%** |
+
+> [!IMPORTANT]
+> The **Original Backtester (Bugs)** line represents the performance generated by the original codebase, which contains several critical bugs in its daily return and transaction cost formulas (detailed in Section 5). 
+
+### Gearing Recommendation & Analysis
+1.  **Constant Exposure is Unviable:** 
+    At all constant exposure levels (Base = 0.25 to 1.00), the corrected strategy loses money, experiencing catastrophic drawdowns ranging from **-81.48%** to **-98.80%**. Because volatility is highly mean-reverting and has fat tails, scaling exposure based solely on VRP signal strength (which peaks during market crashes) causes the strategy to enter heavily leveraged long positions (up to 3.0x max leverage) at the absolute peak of volatility spikes (e.g., March 2020). When volatility mean-reverts, the strategy is wiped out.
+2.  **Efficacy of Risk Controls:**
+    *   **1.5% Daily Volatility Target:** This mechanism successfully controlled portfolio risk. The annualized volatility was reduced from **77.97%** (unmanaged Base=0.5) to **25.49%** (which equates to an actual daily volatility of **1.60%**, matching the 1.5% daily target closely).
+    *   **3% Trailing Stop:** This stop shielded the portfolio from tail risk, capping the maximum drawdown at **-64.39%** (compared to the unmanaged **-95.28%**).
+3.  **Final Recommendation:**
+    We recommend a **dynamic volatility-targeted gearing model (1.5% daily target) with a tight trailing stop**. Constant exposure is mathematically toxic in volatility space due to volatility drag and fat-tailed drawdowns. 
+    However, because the strategy still significantly underperformed the S&P 500 (CAGR of -11.02% vs 12.78% for Buy & Hold), **we do not recommend deploying this strategy in production** until the underlying signal generation is improved (e.g., incorporating the futures term-structure slope/roll yield instead of raw realized volatility vs lagged VIX).
+
+---
+
+## 3. Alternative Instruments
+
+*Omitted per user instructions.*
+
+---
+
+## 4. Performance Results & Statistical Significance Testing
+
+### Methodology
+*   **Backtest Period:** 2018-01-01 to 2026-03-31 (2,152 trading days).
+*   **Transaction Costs:** 20 bps (0.20%) applied as a round-trip fee on the rebalanced volume (both additions, reductions, and switches).
+*   **Paired t-Test (vs S&P 500):** We conducted a two-tailed paired-sample t-test on the daily returns of the strategy ($R_{strat, t}$) against the daily returns of the S&P 500 Buy & Hold ($R_{spx, t}$) to evaluate if the strategy's active returns are statistically significant.
+*   **One-Sample t-Test (vs 0):** We conducted a one-sample t-test on the daily returns of the strategy to verify if the average daily return is statistically different from zero.
+
+### Statistical Results
+*   **Corrected Base Strategy (Base=0.5) vs S&P 500:**
+    *   **t-statistic:** $-0.0118$
+    *   **p-value:** $0.9906$
+    *   *Interpretation:* There is **no statistically significant difference** between the daily returns of the unmanaged strategy and the S&P 500.
+*   **Risk-Managed Strategy (VolTarget=1.5%, Stop=3%) vs S&P 500:**
+    *   **t-statistic:** $-2.2493$
+    *   **p-value:** **$0.0246$**
+    *   *Interpretation:* The difference is **statistically significant** at the 95% confidence level ($p < 0.05$). However, because the t-statistic is negative, it confirms that the risk-managed strategy **significantly underperformed** the S&P 500 benchmark.
+*   **One-Sample t-test (Strategy vs 0):**
+    *   **t-statistic:** $0.1734$
+    *   **p-value:** $0.8623$
+    *   *Interpretation:* The strategy's daily returns are not statistically different from zero. (Note: The original buggy code reported a t-statistic of $24.64$ and a p-value of $2.51 \times 10^{-118}$, which was an artifact of the return formula bug).
+
+---
+
+## 5. Write-Up: Key Decisions, Ambiguities, & Code Audits
+
+### Key Decisions
+1.  **Excluding Pre-2018 Data:** Discarding pre-2018 data was critical. Running the backtester on the noisy pre-2018 data would have yielded completely distorted results because the VXX and SVXY return series in the Excel sheet were moving in the same direction on 46.5% of the days, violating the basic definition of inverse exchange-traded products.
+2.  **Dynamic Risk Parity Adjustment:** Implementing the dynamic Vol Ratio scaling for SVXY was essential to correct for the structural halving of its leverage in February 2018.
+
+### Ambiguities & Code Bugs Identified
+During our review of the codebase, we uncovered two critical mathematical errors in the backtesting engine (`src/backtester.py`) that distorted the results:
+
+#### Bug 1: Sign Errors in Addition & Reduction Formulas
+In `src/backtester.py`, the formulas for calculating the post-rebalance portfolio value $V_t$ were implemented with incorrect signs:
+*   **Code Implementation (Buggy):**
+    ```python
+    # Addition (buying more of same asset)
+    V_t = (V_before - self.trading_cost * P_current) / (1.0 - self.trading_cost * L_target)
+    # Reduction (selling some of same asset)
+    V_t = (V_before + self.trading_cost * P_current) / (1.0 + self.trading_cost * L_target)
+    ```
+*   **Mathematical Derivation & Correction:**
+    Rebalancing costs must always reduce the portfolio value: $V_t = V_{before} - c \cdot |L_{target} V_t - P_{current}|$.
+    Solving for $V_t$ yields:
+    *   **Addition ($L_{target} V_t \ge P_{current}$):** 
+        $$V_t = \frac{V_{before} + c \cdot P_{current}}{1 + c \cdot L_{target}}$$
+    *   **Reduction ($L_{target} V_t < P_{current}$):** 
+        $$V_t = \frac{V_{before} - c \cdot P_{current}}{1 - c \cdot L_{target}}$$
+    *   *Impact:* The buggy code had flipped signs, which caused transaction costs to become negative in many rebalancing steps. Instead of paying fees, the portfolio received a "cash subsidy" on rebalances, creating phantom profits that inflated the CAGR.
+
+#### Bug 2: Daily Net Return Formula Bug
+*   **Code Implementation (Buggy):**
+    ```python
+    daily_net_return = (V_t - V_before) / V_before
+    ```
+*   **Correction:**
+    $$R_{portfolio, t} = \frac{V_t - V_{t-1}}{V_{t-1}}$$
+    *   *Impact:* $V_{before}$ represents the portfolio value *after* the asset return has occurred but *before* transaction costs are deducted ($V_{before} = V_{t-1}(1 + L_{t-1}R_t)$). Therefore, `(V_t - V_before) / V_before` measures only the transaction cost fee percentage ($\approx -c$), completely ignoring the actual daily return of the asset held. 
+    *   This is why the original code printed an annualized volatility of **0.89%** and a Sharpe ratio of **8.43**, whereas the actual portfolio value volatility was **78.19%** with a Sharpe ratio of **0.3925**.
+
+### Assumptions
+*   **Risk-Free Rate:** Assumed to be 0% for Sharpe and Sortino calculations.
+*   **Rebalancing execution:** Assumed that rebalancing occurs exactly at the daily closing price without execution slippage.
+*   **Liquidity:** Assumed infinite market liquidity and no market impact from trades.
