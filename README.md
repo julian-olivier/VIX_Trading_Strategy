@@ -62,7 +62,7 @@ We simulated the updated volatility strategy across several base exposures. The 
 
 ## 3. Alternative Instruments
 
-*Omitted per user instructions.*
+*planning to extend to 2008 to see that market crash by pulling SPX to derive own VIX values (something along those lines).*
 
 ---
 
