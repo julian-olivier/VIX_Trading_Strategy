@@ -53,8 +53,8 @@ I simulated the updated volatility strategy across several base exposures (geari
 | **Strategy (Base=1.00)** | -79.22% | 116.01% | -97.27% | 35.87% |
 
 ### Gearing Recommendation & Analysis
-1.  **Default Gearing of 0.25 is Optimal:** 
-    A base exposure of **0.25** has been set as the default in the codebase. As shown in the performance table, Base = 0.25 is the optimal gearing level. It achieves a strong positive total return (**85.69%**) while keeping volatility and drawdowns at relatively controlled levels compared to higher exposures.
+1.  **Default Exposure of 0.25 is Optimal:** 
+    A base exposure of **0.25** has been set as the default in the codebase. As shown in the performance table, Base = 0.25 is the optimal exposure level. It achieves a strong positive total return (**85.69%**) while keeping volatility and drawdowns at relatively controlled levels compared to higher exposures.
     At higher exposures (Base = 0.50 to 1.00), the strategy suffers from severe **volatility drag** (compounding decay), resulting in capital losses (e.g., losing **79.22%** for Base = 1.00) and drawdowns exceeding **-92%**.
 2.  **Impact of Rebalancing Thresholds:**
     The introduction of the rebalancing and signal activation thresholds has a massive positive impact on performance:
