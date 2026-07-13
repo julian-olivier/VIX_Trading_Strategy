@@ -46,11 +46,11 @@ I simulated the updated volatility strategy across several base exposures (geari
 
 | Strategy / Gearing Option | Total Return (%) | Ann. Volatility (%) | Max Drawdown (%) | Rebalance Frequency |
 | :--- | :---: | :---: | :---: | :---: |
-| **S&P 500 Buy & Hold** | **179.33%** | **19.10%** | **-33.79%** | **0.00%** |
-| **Strategy (Base=0.25)** | 85.69% | 54.38% | -76.79% | 8.60% |
-| **Strategy (Base=0.50)** | 3.64% | 86.84% | -92.37% | 15.99% |
-| **Strategy (Base=0.75)** | -55.05% | 108.72% | -96.60% | 32.90% |
-| **Strategy (Base=1.00)** | -79.22% | 116.01% | -97.27% | 35.87% |
+| **S&P 500 Buy & Hold** | **179.33%** | **19.11%** | **-33.79%** | **0.00%** |
+| **Strategy (Base=0.25)** | 119.96% | 54.46% | -76.79% | 8.36% |
+| **Strategy (Base=0.50)** | 47.08% | 87.04% | -92.37% | 15.71% |
+| **Strategy (Base=0.75)** | -22.88% | 109.08% | -96.60% | 32.43% |
+| **Strategy (Base=1.00)** | -57.64% | 116.59% | -97.27% | 35.36% |
 
 ### Gearing Recommendation & Analysis
 1.  **Default Exposure of 0.25 is Optimal:** 
@@ -88,12 +88,12 @@ To implement a volatility-based portfolio hedge, several alternative instruments
 
 ### Statistical Results (Base = 0.25 Baseline)
 *   **Strategy (Base=0.25) vs S&P 500 Buy & Hold:**
-    *   **t-statistic:** $0.3090$
-    *   **p-value:** $0.7573$
+    *   **t-statistic:** $0.4067$
+    *   **p-value:** $0.6843$
     *   *Interpretation:* There is **no statistically significant difference** between the daily returns of the strategy and the S&P 500. This is expected, as the strategy is designed as an uncorrelated tail hedge rather than a stock market clone.
 *   **Strategy (Base=0.25) vs 0:**
-    *   **t-statistic:** $1.0883$
-    *   **p-value:** $0.2766$
+    *   **t-statistic:** $1.1962$
+    *   **p-value:** $0.2317$
     *   *Interpretation:* The strategy's average daily return is not statistically different from zero over the long-term, showing that the strategy is return-neutral in quiet markets while maintaining its core hedging capability for periods of high stress.
 *   **S&P 500 Buy & Hold vs 0:**
     *   **t-statistic:** $2.1206$
