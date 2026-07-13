@@ -180,7 +180,7 @@ def calculate_leverage(
     
     # 2. Normalize signal strength using rolling 252-day mean absolute difference
     abs_diff = vol_difference.abs()
-    diff_abs_mean_252 = abs_diff.rolling(252).mean().bfill()
+    diff_abs_mean_252 = abs_diff.rolling(252, min_periods=1).mean()
     signal_strength = abs_diff / diff_abs_mean_252
     signal_strength = signal_strength.fillna(1.0)
     

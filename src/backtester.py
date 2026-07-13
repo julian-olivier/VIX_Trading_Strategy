@@ -152,10 +152,10 @@ class VIXBacktester:
                 R_t = 0.0
 
             # 1. Portfolio value before transaction costs
-            V_before = V_t * (1.0 + L_prev * R_t)
+            V_before = V_prev * (1.0 + L_prev * R_t)
             
             # 2. Value of the position before rebalancing
-            P_current = L_prev * V_t * (1.0 + R_t)
+            P_current = L_prev * V_prev * (1.0 + R_t)
 
             # Apply signal activation threshold
             if self.signal_activation_threshold > 0.0 and sig_strength < self.signal_activation_threshold:
